@@ -26,9 +26,7 @@ jobs:
         id: release
         uses: googleapis/release-please-action@v4
         with:
-          release-type: node
-          package-name: forwardz
-          include-v-in-tag: true
+          config-file: .release-please-config.json
 
       # Release Please creates the tag and release in this same workflow run.
       # Checking out the tag ensures the asset matches the published release.
