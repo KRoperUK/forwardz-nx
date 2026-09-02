@@ -86,6 +86,45 @@ export function wrapTextLines(
 	return lines;
 }
 
+export interface AvailableWidthOptions {
+	/** Total width of the containing box. */
+	containerWidth: number;
+	/** Inset from the left edge. */
+	leftPadding?: number;
+	/** Inset from the right edge. */
+	rightPadding?: number;
+	/** Width already taken by something else on the same rows (e.g. a
+	 * right-aligned status label). */
+	reservedWidth?: number;
+	/** Gap to leave between this text and the reserved element. */
+	gap?: number;
+	/** Never return less than this, so text doesn't collapse to nothing. */
+	minWidth?: number;
+}
+
+/**
+ * Width available for text that shares horizontal space with another element.
+ *
+ * Used for rows where a left-aligned label and a right-aligned value sit on
+ * overlapping baselines: without reserving the right-hand element's measured
+ * width, a long label silently draws straight through it.
+ */
+export function availableWidthBeside(options: AvailableWidthOptions): number {
+	const {
+		containerWidth,
+		leftPadding = 0,
+		rightPadding = 0,
+		reservedWidth = 0,
+		gap = 0,
+		minWidth = 0,
+	} = options;
+
+	const reserved = reservedWidth > 0 ? reservedWidth + gap : 0;
+	const available = containerWidth - leftPadding - rightPadding - reserved;
+
+	return Math.max(minWidth, available);
+}
+
 /**
  * Height of a block of `lineCount` lines, matching react-tela's `Text`
  * height calculation.
