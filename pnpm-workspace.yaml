@@ -4,3 +4,7 @@ allowBuilds:
 onlyBuiltDependencies:
   - '@biomejs/biome'
   - esbuild
+overrides:
+  terminal-image: ^4.3.0
+  '@xmldom/xmldom': ^0.8.13
+  jimp: 1.6.0
