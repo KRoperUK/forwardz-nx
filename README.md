@@ -1,4 +1,4 @@
-# NRO Forwarder Utility
+# Forwardz
 
 Generate and install Nintendo Switch NRO forwarders directly from the Switch.
 
@@ -16,11 +16,13 @@ pnpm run typecheck
 pnpm run nro
 ```
 
-The output is `nsp-forwarder.nro`. Copy it to:
+The output is `forwardz.nro`. Copy it to:
 
 ```text
-sd:/switch/nsp-forwarder/nsp-forwarder.nro
+sd:/switch/forwardz.nro
 ```
+
+The HOME-menu title is **Forwardz**.
 
 ## Key requirement
 

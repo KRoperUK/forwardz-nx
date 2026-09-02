@@ -25,7 +25,7 @@ export function NROForwarderIcon(
 
 	if (!app) return null;
 
-	return <ForwarderIcon {...props} app={app} label='NRO Forwarder' />;
+	return <ForwarderIcon {...props} app={app} label='Forwardz' />;
 }
 
 export function RetroArchForwarderIcon(

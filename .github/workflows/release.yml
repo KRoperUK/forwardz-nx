@@ -65,7 +65,7 @@ jobs:
             echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Build `nsp-forwarder.nro`
+      - name: Build `forwardz.nro`
         if: steps.changesets.outputs.hasChangesets == 'false' && steps.check_release.outputs.exists == 'false'
         run: pnpm nro
 
@@ -85,7 +85,7 @@ jobs:
           printenv PROD_KEYS > "$HOME/.switch/prod.keys"
           chmod 600 "$HOME/.switch/prod.keys"
 
-      - name: Build `nsp-forwarder.nsp`
+      - name: Build `forwardz.nsp`
         if: steps.changesets.outputs.hasChangesets == 'false' && steps.check_release.outputs.exists == 'false'
         run: pnpm nsp
 
@@ -97,7 +97,7 @@ jobs:
         run: |
           # Pull out the section of CHANGELOG.md for the just-released version.
           # CHANGELOG entries look like:
-          #   # nsp-forwarder
+          #   # forwardz
           #
           #   ## 0.0.8
           #   ...notes...
@@ -125,5 +125,5 @@ jobs:
             --target "$GITHUB_SHA" \
             --title "$VERSION" \
             --notes-file RELEASE_NOTES.md \
-            nsp-forwarder.nro \
-            nsp-forwarder.nsp
+            forwardz.nro \
+            forwardz.nsp

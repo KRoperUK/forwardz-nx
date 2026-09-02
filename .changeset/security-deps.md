@@ -1,5 +1,5 @@
 ---
-"nsp-forwarder": patch
+"forwardz": patch
 ---
 
 Update dependencies to address security advisories. Bumps `@nx.js/*`

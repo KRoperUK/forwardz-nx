@@ -1,4 +1,5 @@
-const STATE_PATH = 'sdmc:/switch/nsp-forwarder/state.json';
+const STATE_PATH = 'sdmc:/switch/forwardz/state.json';
+const LEGACY_STATE_PATH = 'sdmc:/switch/nsp-forwarder/state.json';
 
 interface ForwarderState {
 	hiddenPaths?: string[];
@@ -10,7 +11,8 @@ function normalisePath(path: string) {
 
 export function loadHiddenPaths(): Set<string> {
 	try {
-		const data = Switch.readFileSync(STATE_PATH);
+		let data = Switch.readFileSync(STATE_PATH);
+		if (!data) data = Switch.readFileSync(LEGACY_STATE_PATH);
 		if (!data) return new Set();
 		const state = JSON.parse(new TextDecoder().decode(data)) as ForwarderState;
 		return new Set((state.hiddenPaths ?? []).map(normalisePath));

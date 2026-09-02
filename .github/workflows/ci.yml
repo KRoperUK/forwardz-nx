@@ -35,14 +35,14 @@ jobs:
       - name: Bundle App
         run: pnpm build
 
-      - name: Build `nsp-forwarder.nro`
+      - name: Build `forwardz.nro`
         run: pnpm nro
 
-      - name: Upload `nsp-forwarder.nro` Artifact
+      - name: Upload `forwardz.nro` Artifact
         uses: actions/upload-artifact@v7
         with:
-          name: nsp-forwarder.nro
-          path: nsp-forwarder.nro
+          name: forwardz.nro
+          path: forwardz.nro
 
   lint:
     name: Lint

@@ -1,12 +1,12 @@
 {
   "private": true,
-  "name": "nsp-forwarder",
+  "name": "forwardz",
   "version": "0.1.0",
   "license": "MIT",
   "description": "Generate NSP to NRO forwarders for Switch",
   "nacp": {
     "id": "01c7d19eae2a0000",
-    "title": "NRO Forwarder Utility",
+    "title": "Forwardz",
     "userAccountSaveDataSize": "0"
   },
   "scripts": {

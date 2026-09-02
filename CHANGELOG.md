@@ -1,4 +1,4 @@
-# nsp-forwarder
+# Forwardz
 
 ## 0.0.8
 

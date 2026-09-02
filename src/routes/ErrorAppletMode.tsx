@@ -27,7 +27,7 @@ export function ErrorAppletMode() {
 				x={root.ctx.canvas.width / 2}
 				y={340}
 			>
-				NSP Forwarder Generator requires full-memory access.
+				Forwardz requires full-memory access.
 			</Text>
 			<Text
 				fontFamily='sans-serif'

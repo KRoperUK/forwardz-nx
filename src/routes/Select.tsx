@@ -94,7 +94,7 @@ export function Select() {
 			visibleApps.length === 0 ? 0 : Math.min(index, visibleApps.length - 1),
 		);
 		setScrollTop(0);
-	}, [filterIndex, visibleApps.length]);
+	}, [visibleApps.length]);
 
 	const selectedRow = Math.floor(selectedIndex / perRow);
 	const centerRow = Math.floor(rowsVisible / 2);
@@ -135,7 +135,9 @@ export function Select() {
 	);
 	useGamepadButton('B', () => navigate(-1), [navigate], !filePickerShowing);
 	useGamepadButton('Plus', () => Switch.exit(), [], !filePickerShowing);
-	useGamepadButton('Y', toggleHidden, [toggleHidden], !filePickerShowing);
+	// `selectedApp` is required here so the memoized callback never hides a stale tile.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: dependency is consumed by useGamepadButton's callback wrapper
+	useGamepadButton('Y', toggleHidden, [selectedApp], !filePickerShowing);
 	useGamepadButton(
 		'L',
 		() => setFilterIndex((index) => Math.max(0, index - 1)),
@@ -191,7 +193,7 @@ export function Select() {
 			<Rect width={viewportWidth} height={root.ctx.canvas.height} fill='#0b1220' />
 			<Rect width={viewportWidth} height={6} fill='#56e0c0' />
 			<Text fill='#f4f7fb' fontSize={30} x={26} y={18}>
-				FORWARDER LIBRARY
+				FORWARDZ LIBRARY
 			</Text>
 			<Text fill='#8197b2' fontSize={16} x={28} y={55}>
 				Select homebrew, review its status, and create a HOME-menu shortcut.
