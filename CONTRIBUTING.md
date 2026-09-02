@@ -24,6 +24,35 @@ memory mode rather than applet mode.
 reasoning that can be tested without hardware into plain functions/modules,
 following the pattern in `src/usb-sd-access/support.ts`.
 
+## Screen layout
+
+Forwardz renders to a 1280x720 canvas via react-tela, which positions every
+entity absolutely — there is no flow layout, so overlapping text is a real
+and easy mistake to make. Two rules keep screens safe:
+
+1. **Don't hardcode positions that depend on text.** If an offset depends on
+   how wide or how tall some text renders, measure it. `useMeasureText()`
+   returns a measuring function for a given font, and the helpers in
+   `src/layout/` turn measurements into positions:
+   - `layoutFooterItems()` positions footer button hints so they cannot
+     overlap, whatever the labels say or however many there are.
+   - `wrapTextLines()` / `stackTextRows()` wrap text and stack blocks
+     vertically, accounting for each block's real wrapped height.
+2. **Keep the geometry pure and test it.** Put a screen's layout math in a
+   plain module (see `src/usb-sd-access/layout.ts`) and assert in tests that
+   elements stay inside the screen, don't overlap each other, and don't
+   collide with the footer. `src/usb-sd-access/layout.test.ts` is the
+   reference example, using deliberately wider-than-real font metrics so the
+   layout is checked pessimistically.
+
+When adding a footer hint, add it to the `actions` array passed to
+`<Footer>`; never position hints by hand.
+
+Note that `<Text>` only wraps when given `maxWidth`, and `overflow='clip'`
+truncates to a single line rather than wrapping — use `'wrap'` (the default
+with `maxWidth`) for prose and `'ellipsis'` for single-line labels that might
+be too long.
+
 Never commit `prod.keys`, console dumps, private dumps, or other sensitive
 console material. Tests and examples must use synthetic data.
 

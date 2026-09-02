@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { type AppInfo, apps, pathToAppInfo } from '../apps';
 import { AppTile } from '../components/AppTile';
 import { FilePicker } from '../components/FilePicker';
-import { Footer, FooterItem } from '../components/Footer';
+import { Footer } from '../components/Footer';
 import { ScrollGroup } from '../components/ScrollGroup';
 import { useDirection, useGamepadButton } from '../hooks/use-gamepad';
 import {
@@ -284,15 +284,24 @@ export function Select() {
 				{selectedApp ? (isInstalled(selectedApp) ? 'INSTALLED FORWARDER' : 'NOT INSTALLED') : ''}
 			</Text>
 
-			<Footer>
-				<FooterItem button='L' x={24}>Previous view</FooterItem>
-				<FooterItem button='R' x={190}>Next view</FooterItem>
-				<FooterItem button='Y' x={350}>{selectedApp && hiddenPaths.has(pathKey(selectedApp.path)) ? 'Show' : 'Hide'}</FooterItem>
-				<FooterItem button='X' x={450}>File picker</FooterItem>
-				<FooterItem button='ZL' x={620}>USB SD Access</FooterItem>
-				<FooterItem button='A' x={820}>Configure</FooterItem>
-				<FooterItem button='Plus' x={1020}>Exit</FooterItem>
-			</Footer>
+			<Footer
+				align='left'
+				actions={[
+					{ button: 'L', label: 'Previous view' },
+					{ button: 'R', label: 'Next view' },
+					{
+						button: 'Y',
+						label:
+							selectedApp && hiddenPaths.has(pathKey(selectedApp.path))
+								? 'Show'
+								: 'Hide',
+					},
+					{ button: 'X', label: 'File picker' },
+					{ button: 'ZL', label: 'USB SD' },
+					{ button: 'A', label: 'Configure' },
+					{ button: 'Plus', label: 'Exit' },
+				]}
+			/>
 
 			{filePickerShowing && (
 				<FilePicker

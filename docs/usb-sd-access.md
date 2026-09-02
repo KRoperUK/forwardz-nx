@@ -128,9 +128,8 @@ issue.
 ## What Forwardz ships instead
 
 - A controller-first **USB SD Access** screen (`/usb-sd-access`), reachable
-  from the library screen's footer (`X` + `Y` chord is already used for the
-  file picker and hide/show, so this screen is reachable via a dedicated
-  `ZL` footer entry — see `src/routes/Select.tsx`).
+  from the library screen via a dedicated `ZL` footer entry (see
+  `src/routes/Select.tsx`).
 - The screen states plainly that the feature is unavailable on the current
   runtime, why (summarized from this document), and what would need to
   change for it to become possible.
@@ -138,9 +137,15 @@ issue.
   card, gamepad state machine, or any lifecycle beyond display and simple
   `A`/`B` dismissal, matching the "no fake button" requirement.
 - The screen's copy and the reasoning behind it are backed by
-  `src/usb-sd-access/support.ts`, a small pure module (see
-  [Testing](#testing)) so the "why" logic has unit tests independent of the
-  react-tela rendering.
+  `src/usb-sd-access/support.ts`, a small pure module so the "why" logic has
+  unit tests independent of the react-tela rendering.
+- The screen's geometry is computed by `src/usb-sd-access/layout.ts` from
+  measured, wrapped text rather than fixed pixel offsets. react-tela
+  positions every entity absolutely, so stacked blocks of wrapping text will
+  silently overlap if their heights are assumed instead of measured. The
+  layout is unit tested to confirm the panel stays inside the 1280x720
+  screen, detail rows never overlap, and the closing note never collides
+  with the footer bar — including when the explanation text grows.
 
 ## If the runtime gap closes: target architecture
 
@@ -245,10 +250,14 @@ function doesn't recognize, it falls back to "Unable to determine the
 current runtime version." rather than guessing support is available — this
 is intentional; see the unit tests in `support.test.ts`.
 
-**The `ZL` hint doesn't appear on the library screen.** `FooterItem`
-placement in `Select.tsx` is hand-positioned by `x` offset; if another
-change shifts footer items around, check for overlapping `x` values rather
-than a logic bug.
+**The `ZL` hint doesn't appear on the library screen.** Footer hints are
+laid out by `layoutFooterItems()` (`src/layout/footer.ts`) from measured
+label widths, so they cannot overlap. If a hint is missing entirely, check
+that it is present in the `actions` array passed to `<Footer>` in
+`Select.tsx`. If hints look cramped, the layout has shrunk the gap to fit;
+`layoutFooterItems` returns `overflows: true` when even the minimum gap
+doesn't fit, which indicates too many or too long hints for the screen
+width.
 
 **I want to actually test USB Mass Storage on hardware.** You can't yet —
 that's the point of this document. There is no `preparing`/`mounted` session
