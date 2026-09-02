@@ -222,10 +222,15 @@ straight to **error** with a specific reason string, never to **preparing**.
 
 ## FAT32 / exFAT and data-loss risk
 
-- The Switch's SD card is typically formatted **exFAT** by Horizon (FAT32
-  only on very small/old cards). A future implementation must mount using
-  the filesystem the card actually has; forcing FAT32 would require
-  destructive reformatting and must never happen automatically.
+- Switch SD cards are **either FAT32 or exFAT**, and both are common. Horizon
+  supports FAT32 natively, while exFAT requires Nintendo's optional exFAT
+  driver update. Cards larger than 32GB often arrive exFAT-formatted from the
+  manufacturer, but custom-firmware setups are frequently reformatted to
+  FAT32 because the Switch's exFAT support has a poor reliability reputation
+  (Hekate and Atmosphère guidance generally favours FAT32). A future
+  implementation must detect and mount whichever filesystem the card actually
+  has — never assume one, and never reformat, since that destroys the user's
+  data.
 - Neither FAT32 nor exFAT is a journaling filesystem. If the cable is
   removed mid-write, or the host does not flush/eject cleanly, files being
   written at that moment (and, worst case, the filesystem's allocation
