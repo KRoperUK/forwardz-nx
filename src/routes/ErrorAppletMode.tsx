@@ -1,5 +1,5 @@
 import { Text, useParent } from 'react-tela';
-import { Footer, FooterItem } from '../components/Footer';
+import { Footer } from '../components/Footer';
 import { useGamepadButton } from '../hooks/use-gamepad';
 
 export function ErrorAppletMode() {
@@ -39,11 +39,7 @@ export function ErrorAppletMode() {
 			>
 				Please re-launch via title redirection.
 			</Text>
-			<Footer>
-				<FooterItem button='A' x={root.ctx.canvas.width - 100}>
-					Exit
-				</FooterItem>
-			</Footer>
+			<Footer actions={[{ button: 'A', label: 'Exit' }]} />
 		</>
 	);
 }

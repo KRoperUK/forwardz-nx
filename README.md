@@ -13,6 +13,9 @@ NRO applications and creating HOME-menu forwarders for them.
 - Detect `prod.keys` in common SD-card locations.
 - Show an offline key-dump guide and QR code when keys are missing.
 - Preserve the previous hidden-app state location during the Forwardz migration.
+- Explain why Hekate-style USB Mass Storage (full SD card access from a
+  computer) is not available on the current runtime, instead of showing a
+  non-functional button. See [USB SD Access](#usb-sd-access) below.
 
 ## Install
 
@@ -44,6 +47,25 @@ If no keyset is found, Forwardz stops before generation and displays this guide:
 Never share `prod.keys` or include it in an issue, pull request, build log, or
 release artifact.
 
+## USB SD Access
+
+Forwardz includes a **USB SD Access** screen (press `ZL` from the library
+screen) that explains why full Hekate-style USB Mass Storage — mounting the
+entire SD card on a computer over USB, the way Hekate does from the
+bootloader — is not offered as a real feature.
+
+In short: Hekate can do this because it runs before Horizon (the Switch
+system software) boots and owns the SD card. Forwardz runs as a normal
+application after Horizon already owns it, and the current nx.js runtime
+does not expose the native USB device-mode (`usb:ds`) support needed to hand
+the SD card to a computer safely. Rather than ship a button that cannot
+actually do this, Forwardz shows a clear explanation.
+
+See [`docs/usb-sd-access.md`](docs/usb-sd-access.md) for the full feasibility
+audit, the target lifecycle/state machine if the runtime ever adds support,
+and FAT32/exFAT data-loss considerations. Progress is tracked in
+[issue #10](https://github.com/KRoperUK/forwardz-nx/issues/10).
+
 ## Build from source
 
 Requires Node.js 24.x, pnpm 10.x, and the published nx.js toolchain:
@@ -52,11 +74,15 @@ Requires Node.js 24.x, pnpm 10.x, and the published nx.js toolchain:
 pnpm install --frozen-lockfile
 pnpm typecheck
 pnpm lint
+pnpm test
 pnpm nro
 ```
 
 The build creates `forwardz.nro` in the repository root. The optional `pnpm
 nsp` command creates an NSP package and requires a suitable local key setup.
+`pnpm test` runs the Vitest unit tests (currently the USB SD Access
+feasibility-reasoning module; no `Switch` hardware globals are required to
+run them).
 
 ## Development and releases
 
