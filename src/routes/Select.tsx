@@ -156,6 +156,12 @@ export function Select() {
 		[],
 		!filePickerShowing,
 	);
+	useGamepadButton(
+		'ZL',
+		() => navigate('/usb-sd-access'),
+		[navigate],
+		!filePickerShowing,
+	);
 
 	useDirection(
 		'Left',
@@ -283,8 +289,9 @@ export function Select() {
 				<FooterItem button='R' x={190}>Next view</FooterItem>
 				<FooterItem button='Y' x={350}>{selectedApp && hiddenPaths.has(pathKey(selectedApp.path)) ? 'Show' : 'Hide'}</FooterItem>
 				<FooterItem button='X' x={450}>File picker</FooterItem>
-				<FooterItem button='A' x={650}>Configure</FooterItem>
-				<FooterItem button='Plus' x={850}>Exit</FooterItem>
+				<FooterItem button='ZL' x={620}>USB SD Access</FooterItem>
+				<FooterItem button='A' x={820}>Configure</FooterItem>
+				<FooterItem button='Plus' x={1020}>Exit</FooterItem>
 			</Footer>
 
 			{filePickerShowing && (
