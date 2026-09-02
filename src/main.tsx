@@ -67,7 +67,7 @@ const routes = [
 	},
 ];
 
-let initialRoute = '/select-forwarder-type';
+let initialRoute = '/select';
 if (Switch.appletType() !== AppletType.Application) {
 	// Ensure the app is running in full-memory mode
 	initialRoute = '/error-applet-mode';

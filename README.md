@@ -1,9 +1,42 @@
-# `switch-nsp-forwarder`
+# NRO Forwarder Utility
 
-<img align="right" width="200" height="200" src="./icon.jpg">
+Generate and install Nintendo Switch NRO forwarders directly from the Switch.
 
-### Generate and Install NSP to NRO forwarders on your Switch
+This build includes a library-style interface with Installed, To Install, and
+Hidden views; persistent per-app hiding; common `prod.keys` path detection; and
+an offline QR code for the key-dump guide when keys are missing.
 
-Go to the
-[Releases](https://github.com/TooTallNate/switch-nsp-forwarder/releases) page to
-download the latest version.
+## Build
+
+Requires Node.js, pnpm, and the nx.js Switch toolchain.
+
+```sh
+pnpm install
+pnpm run typecheck
+pnpm run nro
+```
+
+The output is `nsp-forwarder.nro`. Copy it to:
+
+```text
+sd:/switch/nsp-forwarder/nsp-forwarder.nro
+```
+
+## Key requirement
+
+The app searches these common locations for `prod.keys`:
+
+```text
+sd:/switch/prod.keys
+sd:/prod.keys
+sd:/switch/keys/prod.keys
+sd:/switch/DBI/prod.keys
+```
+
+If none are found, the app displays the key-dump warning and QR code instead
+of attempting forwarder generation.
+
+## License
+
+MIT. The forwarder generation implementation is based on the original
+open-source project by Nathan Rajlich.
