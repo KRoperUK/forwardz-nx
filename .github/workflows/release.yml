@@ -2,128 +2,79 @@ name: Release
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
 
-concurrency: ${{ github.workflow }}-${{ github.ref }}
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   release:
-    name: Release
+    name: Release Please and publish NRO
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
     env:
       FORCE_COLOR: 3
     steps:
-      - name: Checkout Repo
+      - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Run Release Please
+        id: release
+        uses: googleapis/release-please-action@v4
+        with:
+          release-type: node
+          package-name: forwardz
+          include-v-in-tag: true
+
+      # Release Please creates the tag and release in this same workflow run.
+      # Checking out the tag ensures the asset matches the published release.
+      - name: Checkout released tag
+        if: steps.release.outputs.release_created == 'true'
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ steps.release.outputs.tag_name }}
+
       - name: Setup pnpm
+        if: steps.release.outputs.release_created == 'true'
         uses: pnpm/action-setup@v6
 
-      - name: Setup Node.js 24.x
+      - name: Setup Node.js
+        if: steps.release.outputs.release_created == 'true'
         uses: actions/setup-node@v6
         with:
           node-version: 24.x
-          cache: "pnpm"
+          cache: pnpm
 
-      - name: Install Dependencies
+      - name: Install dependencies
+        if: steps.release.outputs.release_created == 'true'
         run: pnpm install --frozen-lockfile
 
-      # Either opens/updates a "Version Packages" PR (if there are unreleased
-      # changesets), or signals that the version PR was just merged
-      # (`hasChangesets == 'false'`), in which case we proceed to build the
-      # artifacts and cut a GitHub Release below.
-      - name: Create Version PR
-        id: changesets
-        uses: changesets/action@v1
-        with:
-          version: pnpm changeset version
-          # Skip the action's built-in publish step — we handle releases
-          # ourselves so we can attach `.nro` and `.nsp` assets.
-          publish: "echo skip"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Read Package Version
-        if: steps.changesets.outputs.hasChangesets == 'false'
-        id: version
-        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
-
-      - name: Check if Release Already Exists
-        if: steps.changesets.outputs.hasChangesets == 'false'
-        id: check_release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ steps.version.outputs.version }}
+      - name: Validate release source
+        if: steps.release.outputs.release_created == 'true'
         run: |
-          if gh release view "$VERSION" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-          fi
+          pnpm typecheck
+          pnpm lint
 
-      - name: Build `forwardz.nro`
-        if: steps.changesets.outputs.hasChangesets == 'false' && steps.check_release.outputs.exists == 'false'
+      - name: Build Forwardz NRO
+        if: steps.release.outputs.release_created == 'true'
         run: pnpm nro
 
-      - name: Write Switch Keyset
-        if: steps.changesets.outputs.hasChangesets == 'false' && steps.check_release.outputs.exists == 'false'
-        env:
-          PROD_KEYS: ${{ secrets.PROD_KEYS }}
-        run: |
-          if [ -z "$PROD_KEYS" ]; then
-            echo "::error::PROD_KEYS secret is not set. Add the contents of prod.keys as a repository secret named PROD_KEYS." >&2
-            exit 1
-          fi
-          mkdir -p "$HOME/.switch"
-          # `printenv` avoids logging the secret to stdout (which `echo "$PROD_KEYS"` would not, but
-          # printenv is more obviously safe). The runner masks the secret in logs anyway, but defense
-          # in depth.
-          printenv PROD_KEYS > "$HOME/.switch/prod.keys"
-          chmod 600 "$HOME/.switch/prod.keys"
+      - name: Generate checksum
+        if: steps.release.outputs.release_created == 'true'
+        run: sha256sum forwardz.nro > forwardz.nro.sha256
 
-      - name: Build `forwardz.nsp`
-        if: steps.changesets.outputs.hasChangesets == 'false' && steps.check_release.outputs.exists == 'false'
-        run: pnpm nsp
-
-      - name: Extract Release Notes
-        if: steps.changesets.outputs.hasChangesets == 'false' && steps.check_release.outputs.exists == 'false'
-        id: notes
+      - name: Attach NRO to GitHub Release
+        if: steps.release.outputs.release_created == 'true'
         env:
-          VERSION: ${{ steps.version.outputs.version }}
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ steps.release.outputs.tag_name }}
         run: |
-          # Pull out the section of CHANGELOG.md for the just-released version.
-          # CHANGELOG entries look like:
-          #   # forwardz
-          #
-          #   ## 0.0.8
-          #   ...notes...
-          #   ## 0.0.7
-          node -e "
-            const fs = require('fs');
-            const version = process.env.VERSION;
-            const changelog = fs.readFileSync('CHANGELOG.md', 'utf8');
-            const re = new RegExp('## ' + version.replace(/\\./g, '\\\\.') + '\\\\n([\\\\s\\\\S]*?)(?=\\\\n## |$)');
-            const match = changelog.match(re);
-            const body = match ? match[1].trim() : '';
-            fs.writeFileSync('RELEASE_NOTES.md', body);
-          "
-          echo "Release notes:"
-          cat RELEASE_NOTES.md
-
-      - name: Create GitHub Release
-        if: steps.changesets.outputs.hasChangesets == 'false' && steps.check_release.outputs.exists == 'false'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          gh release create "$VERSION" \
-            --repo "$GITHUB_REPOSITORY" \
-            --target "$GITHUB_SHA" \
-            --title "$VERSION" \
-            --notes-file RELEASE_NOTES.md \
+          gh release upload "$TAG_NAME" \
             forwardz.nro \
-            forwardz.nsp
+            forwardz.nro.sha256 \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber

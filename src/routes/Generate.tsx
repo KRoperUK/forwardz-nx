@@ -89,12 +89,13 @@ export function Generate() {
 				// generate the JPEG in a loop until we get a smaller icon.
 				let quality = 100;
 				while (true) {
-					iconBuf = await logo.getBuffer('image/jpeg', { quality });
+					const encodedIcon = await logo.getBuffer('image/jpeg', { quality });
+					iconBuf = encodedIcon;
 					console.debug(
-						`icon size: ${iconBuf.byteLength} with JPEG quality ${quality}%`,
+						`icon size: ${encodedIcon.byteLength} with JPEG quality ${quality}%`,
 					);
 
-					if (iconBuf.byteLength < 0x20000) {
+					if (encodedIcon.byteLength < 0x20000) {
 						// The generated icon is within the allowed size, so we're done.
 						break;
 					}

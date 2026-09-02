@@ -15,8 +15,7 @@
     "lint": "biome lint",
     "nro": "pnpm run build && nxjs-nro",
     "nsp": "pnpm run build && nxjs-nsp",
-    "typecheck": "tsc",
-    "changeset": "changeset"
+    "typecheck": "tsc"
   },
   "author": {
     "name": "Nathan Rajlich",
@@ -44,8 +43,6 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
-    "@changesets/changelog-github": "^0.6.0",
-    "@changesets/cli": "^2.31.0",
     "@nx.js/nro": "0.0.69",
     "@nx.js/nsp": "0.0.69",
     "@nx.js/runtime": "0.0.69",

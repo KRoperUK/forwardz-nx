@@ -2,13 +2,15 @@ name: CI
 
 on:
   push:
-    branches:
-      - main
-    tags:
-      - "!*"
+    branches: [main]
   pull_request:
 
-concurrency: ${{ github.workflow }}-${{ github.ref }}
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -17,74 +19,71 @@ jobs:
     env:
       FORCE_COLOR: 3
     steps:
-      - name: Checkout Repo
+      - name: Checkout repository
         uses: actions/checkout@v6
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
 
-      - name: Setup Node.js 24.x
+      - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version: 24.x
-          cache: "pnpm"
+          cache: pnpm
 
-      - name: Install Dependencies
+      - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Bundle App
-        run: pnpm build
-
-      - name: Build `forwardz.nro`
+      - name: Build Forwardz NRO
         run: pnpm nro
 
-      - name: Upload `forwardz.nro` Artifact
+      - name: Upload Forwardz NRO
         uses: actions/upload-artifact@v7
         with:
           name: forwardz.nro
           path: forwardz.nro
+          if-no-files-found: error
 
   lint:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repo
+      - name: Checkout repository
         uses: actions/checkout@v6
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
 
-      - name: Setup Node.js 24.x
+      - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version: 24.x
-          cache: "pnpm"
+          cache: pnpm
 
-      - name: Install Dependencies
+      - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run Biome Lint
+      - name: Run Biome lint
         run: pnpm lint
-
 
   typecheck:
     name: Type Check
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repo
+      - name: Checkout repository
         uses: actions/checkout@v6
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
 
-      - name: Setup Node.js 24.x
+      - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version: 24.x
-          cache: "pnpm"
+          cache: pnpm
 
-      - name: Install Dependencies
+      - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run Type Check
+      - name: Run TypeScript typecheck
         run: pnpm typecheck
