@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Fragment } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Text, useParent } from 'react-tela';
 import type { AppInfo } from '../apps';
@@ -134,18 +135,11 @@ export function Edit() {
 			</Text>
 
 			{fields.map(({ name, value, onChange }, i) => (
-				<>
-					<Text
-						key={`${name}-label`}
-						fill='white'
-						fontSize={24}
-						x={20}
-						y={88 + i * 50}
-					>
+				<Fragment key={name}>
+					<Text fill='white' fontSize={24} x={20} y={88 + i * 50}>
 						{name}:
 					</Text>
 					<TextInput
-						key={`${name}-input`}
 						value={value}
 						onChange={onChange}
 						width={700}
@@ -156,7 +150,7 @@ export function Edit() {
 						focused={focusedIndex === i}
 						onTouchEnd={() => setFocusedIndex(i)}
 					/>
-				</>
+				</Fragment>
 			))}
 
 			<AppIcon icon={icon} x={root.ctx.canvas.width - 320} y={64} />

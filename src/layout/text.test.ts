@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { stackTextRows, textBlockHeight, wrapTextLines } from './text';
+import {
+	availableWidthBeside,
+	stackTextRows,
+	textBlockHeight,
+	wrapTextLines,
+} from './text';
 
 /** Deterministic stand-in for canvas measurement: 10px per character. */
 const measure = (text: string) => text.length * 10;
@@ -37,6 +42,75 @@ describe('wrapTextLines', () => {
 				expect(measure(line)).toBeLessThanOrEqual(200);
 			}
 		}
+	});
+});
+
+describe('availableWidthBeside', () => {
+	it('subtracts padding on both sides', () => {
+		expect(
+			availableWidthBeside({
+				containerWidth: 1000,
+				leftPadding: 40,
+				rightPadding: 40,
+			}),
+		).toBe(920);
+	});
+
+	it('reserves the other element width plus the gap', () => {
+		expect(
+			availableWidthBeside({
+				containerWidth: 1000,
+				leftPadding: 40,
+				rightPadding: 40,
+				reservedWidth: 150,
+				gap: 24,
+			}),
+		).toBe(920 - 174);
+	});
+
+	it('ignores the gap when nothing is reserved', () => {
+		expect(
+			availableWidthBeside({
+				containerWidth: 500,
+				leftPadding: 10,
+				rightPadding: 10,
+				reservedWidth: 0,
+				gap: 100,
+			}),
+		).toBe(480);
+	});
+
+	it('never returns less than minWidth', () => {
+		expect(
+			availableWidthBeside({
+				containerWidth: 200,
+				leftPadding: 40,
+				rightPadding: 40,
+				reservedWidth: 300,
+				gap: 24,
+				minWidth: 160,
+			}),
+		).toBe(160);
+	});
+
+	it('leaves room so left text cannot reach the reserved element', () => {
+		const containerWidth = 1280;
+		const leftPadding = 40;
+		const rightPadding = 40;
+		const reservedWidth = 152; // measured "INSTALLED FORWARDER"
+		const gap = 24;
+
+		const width = availableWidthBeside({
+			containerWidth,
+			leftPadding,
+			rightPadding,
+			reservedWidth,
+			gap,
+		});
+
+		const leftTextEnd = leftPadding + width;
+		const reservedStart = containerWidth - rightPadding - reservedWidth;
+		expect(leftTextEnd).toBeLessThanOrEqual(reservedStart);
 	});
 });
 

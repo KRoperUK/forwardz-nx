@@ -7,6 +7,8 @@ import { FilePicker } from '../components/FilePicker';
 import { Footer } from '../components/Footer';
 import { ScrollGroup } from '../components/ScrollGroup';
 import { useDirection, useGamepadButton } from '../hooks/use-gamepad';
+import { useMeasureText } from '../hooks/use-measure-text';
+import { availableWidthBeside } from '../layout/text';
 import {
 	getInstalledTitleIds,
 	loadHiddenPaths,
@@ -16,6 +18,9 @@ import {
 import { generateDeterministicID } from '../title-id';
 
 type Filter = 'all' | 'installed' | 'missing' | 'hidden';
+
+/** Font size of the right-aligned install-status label in the detail bar. */
+const DETAIL_STATUS_FONT_SIZE = 15;
 
 const FILTERS: { key: Filter; label: string }[] = [
 	{ key: 'all', label: 'ALL APPS' },
@@ -88,6 +93,25 @@ export function Select() {
 	const contentHeight = totalRows * tileHeight;
 	const rowsVisible = Math.max(1, Math.floor(viewportHeight / tileHeight));
 	const selectedApp = visibleApps[selectedIndex];
+
+	// The detail bar puts the app name/path on the left and the install status
+	// on the right, on overlapping baselines. Reserve the status label's
+	// measured width so a long name or path ellipsizes instead of drawing
+	// straight through it.
+	const statusLabel = selectedApp
+		? isInstalled(selectedApp)
+			? 'INSTALLED FORWARDER'
+			: 'NOT INSTALLED'
+		: '';
+	const measureStatus = useMeasureText('sans-serif', DETAIL_STATUS_FONT_SIZE);
+	const detailWidth = availableWidthBeside({
+		containerWidth: viewportWidth,
+		leftPadding: 40,
+		rightPadding: 40,
+		reservedWidth: statusLabel ? measureStatus(statusLabel) : 0,
+		gap: 24,
+		minWidth: 160,
+	});
 
 	useEffect(() => {
 		setSelectedIndex((index) =>
@@ -274,14 +298,34 @@ export function Select() {
 				stroke='#26364d'
 				lineWidth={2}
 			/>
-			<Text fill='#d8e4f2' fontSize={17} x={40} y={root.ctx.canvas.height - 132}>
+			<Text
+				fill='#d8e4f2'
+				fontSize={17}
+				x={40}
+				y={root.ctx.canvas.height - 132}
+				maxWidth={detailWidth}
+				overflow='ellipsis'
+			>
 				{selectedApp ? selectedApp.name : 'Nothing selected'}
 			</Text>
-			<Text fill='#8197b2' fontSize={14} x={40} y={root.ctx.canvas.height - 108} maxWidth={viewportWidth - 360} overflow='ellipsis'>
+			<Text
+				fill='#8197b2'
+				fontSize={14}
+				x={40}
+				y={root.ctx.canvas.height - 108}
+				maxWidth={detailWidth}
+				overflow='ellipsis'
+			>
 				{selectedApp ? decodeURI(selectedApp.path) : 'Use L/R to change view'}
 			</Text>
-			<Text fill={selectedApp && isInstalled(selectedApp) ? '#56e0c0' : '#d9a85b'} fontSize={15} textAlign='right' x={viewportWidth - 40} y={root.ctx.canvas.height - 120}>
-				{selectedApp ? (isInstalled(selectedApp) ? 'INSTALLED FORWARDER' : 'NOT INSTALLED') : ''}
+			<Text
+				fill={selectedApp && isInstalled(selectedApp) ? '#56e0c0' : '#d9a85b'}
+				fontSize={DETAIL_STATUS_FONT_SIZE}
+				textAlign='right'
+				x={viewportWidth - 40}
+				y={root.ctx.canvas.height - 120}
+			>
+				{statusLabel}
 			</Text>
 
 			<Footer
