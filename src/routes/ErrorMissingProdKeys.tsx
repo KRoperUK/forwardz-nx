@@ -1,5 +1,5 @@
 import { Image, Group, Rect, Text, useParent } from 'react-tela';
-import { Footer, FooterItem } from '../components/Footer';
+import { Footer } from '../components/Footer';
 import { useGamepadButton } from '../hooks/use-gamepad';
 import { PROD_KEYS_PATHS } from '../prod-keys';
 
@@ -55,10 +55,12 @@ export function ErrorMissingProdKeys() {
 				</Text>
 			</Group>
 
-			<Footer>
-				<FooterItem button='A' x={width - 220}>Exit</FooterItem>
-				<FooterItem button='Plus' x={width - 100}>Exit</FooterItem>
-			</Footer>
+			<Footer
+				actions={[
+					{ button: 'A', label: 'Exit' },
+					{ button: 'Plus', label: 'Exit' },
+				]}
+			/>
 		</>
 	);
 }

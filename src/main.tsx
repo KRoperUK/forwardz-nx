@@ -23,6 +23,7 @@ import { SelectRetroArch } from './routes/SelectRetroArch';
 import { Success } from './routes/Success';
 import { RouteErrorBoundary } from './routes/Error';
 import { Edit } from './routes/Edit';
+import { UsbSdAccess } from './routes/UsbSdAccess';
 
 const routes = [
 	{
@@ -63,6 +64,11 @@ const routes = [
 	{
 		path: '/success',
 		element: <Success />,
+		errorElement: <RouteErrorBoundary />,
+	},
+	{
+		path: '/usb-sd-access',
+		element: <UsbSdAccess />,
 		errorElement: <RouteErrorBoundary />,
 	},
 ];

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Text, useParent } from 'react-tela';
-import { Footer, FooterItem } from '../components/Footer';
+import { Footer } from '../components/Footer';
 import {
 	NROForwarderIcon,
 	RetroArchForwarderIcon,
@@ -47,14 +47,12 @@ export function SelectForwarderType() {
 				selected={selectedIndex === 1}
 				onTouchEnd={() => navigate(NEXT_ROUTES[1])}
 			/>
-			<Footer>
-				<FooterItem button='Plus' x={root.ctx.canvas.width - 260}>
-					Exit
-				</FooterItem>
-				<FooterItem button='A' x={root.ctx.canvas.width - 140}>
-					Select
-				</FooterItem>
-			</Footer>
+			<Footer
+				actions={[
+					{ button: 'Plus', label: 'Exit' },
+					{ button: 'A', label: 'Select' },
+				]}
+			/>
 		</>
 	);
 }
