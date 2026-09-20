@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Fragment } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Text, useParent } from 'react-tela';
 import type { AppInfo } from '../apps';
 import { AppIcon } from '../components/AppIcon';
-import { Footer, FooterItem } from '../components/Footer';
+import { Footer } from '../components/Footer';
 import { TextInput } from '../components/TextInput';
 import { useGamepadButton } from '../hooks/use-gamepad';
 import { generateDeterministicID } from '../title-id';
@@ -134,18 +135,11 @@ export function Edit() {
 			</Text>
 
 			{fields.map(({ name, value, onChange }, i) => (
-				<>
-					<Text
-						key={`${name}-label`}
-						fill='white'
-						fontSize={24}
-						x={20}
-						y={88 + i * 50}
-					>
+				<Fragment key={name}>
+					<Text fill='white' fontSize={24} x={20} y={88 + i * 50}>
 						{name}:
 					</Text>
 					<TextInput
-						key={`${name}-input`}
 						value={value}
 						onChange={onChange}
 						width={700}
@@ -156,25 +150,19 @@ export function Edit() {
 						focused={focusedIndex === i}
 						onTouchEnd={() => setFocusedIndex(i)}
 					/>
-				</>
+				</Fragment>
 			))}
 
 			<AppIcon icon={icon} x={root.ctx.canvas.width - 320} y={64} />
 
-			<Footer>
-				<FooterItem button='B' x={root.ctx.canvas.width - 740}>
-					Back
-				</FooterItem>
-				<FooterItem button='A' x={root.ctx.canvas.width - 620}>
-					Edit
-				</FooterItem>
-				<FooterItem button='Y' x={root.ctx.canvas.width - 510}>
-					Save Forwarder
-				</FooterItem>
-				<FooterItem button='X' x={root.ctx.canvas.width - 260}>
-					Install Forwarder
-				</FooterItem>
-			</Footer>
+			<Footer
+				actions={[
+					{ button: 'B', label: 'Back' },
+					{ button: 'A', label: 'Edit' },
+					{ button: 'Y', label: 'Save Forwarder' },
+					{ button: 'X', label: 'Install Forwarder' },
+				]}
+			/>
 		</>
 	);
 }

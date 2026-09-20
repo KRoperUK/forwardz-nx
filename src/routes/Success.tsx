@@ -1,6 +1,6 @@
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Text, useParent } from 'react-tela';
-import { Footer, FooterItem } from '../components/Footer';
+import { Footer } from '../components/Footer';
 import { useGamepadButton } from '../hooks/use-gamepad';
 
 export function Success() {
@@ -116,14 +116,12 @@ export function Success() {
 				{`${searchParams.get('duration') ?? ''} ms`}
 			</Text>
 
-			<Footer>
-				<FooterItem button='Minus' x={root.ctx.canvas.width - 320}>
-					Start Over
-				</FooterItem>
-				<FooterItem button='Plus' x={root.ctx.canvas.width - 120}>
-					Exit
-				</FooterItem>
-			</Footer>
+			<Footer
+				actions={[
+					{ button: 'Minus', label: 'Start Over' },
+					{ button: 'Plus', label: 'Exit' },
+				]}
+			/>
 		</>
 	);
 }
