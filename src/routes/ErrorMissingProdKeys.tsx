@@ -1,15 +1,41 @@
+import { useCallback, useState } from 'react';
 import { Image, Group, Rect, Text, useParent } from 'react-tela';
+import { useNavigate } from 'react-router-dom';
 import { Footer, FooterItem } from '../components/Footer';
 import { useGamepadButton } from '../hooks/use-gamepad';
-import { PROD_KEYS_PATHS } from '../prod-keys';
+import {
+	PROD_KEYS_PATHS,
+	rescanProdKeys,
+	type ProdKeysValidation,
+} from '../prod-keys';
 
 const GUIDE_URL = 'https://docs.ryujinx.app/guides/dumping/keys/';
 
 export function ErrorMissingProdKeys() {
 	const root = useParent();
+	const navigate = useNavigate();
 	const width = root.ctx.canvas.width;
+	const [retry, setRetry] = useState<ProdKeysValidation | null>(null);
+
+	// Refresh after copying keys to the SD Card — no restart needed.
+	// On success the library opens; otherwise the report explains why.
+	const rescan = useCallback(() => {
+		const report = rescanProdKeys((path) => Switch.readFileSync(path));
+		if (report.state === 'valid') {
+			navigate('/select');
+			return;
+		}
+		setRetry(report);
+	}, [navigate]);
 
 	useGamepadButton('A', () => Switch.exit(), []);
+	useGamepadButton(
+		'X',
+		() => {
+			rescan();
+		},
+		[rescan],
+	);
 	useGamepadButton('Plus', () => Switch.exit(), []);
 
 	return (
@@ -42,8 +68,15 @@ export function ErrorMissingProdKeys() {
 						{`• ${path.replace('sdmc:', 'SD:')}`}
 					</Text>
 				))}
-				<Text fill='#e6a84d' fontSize={16} x={28} y={342}>
-					Then close and relaunch this app.
+				{retry && (
+					<Text fill='#e6a84d' fontSize={16} x={28} y={312} maxWidth={665} overflow='clip'>
+						{`Retry: ${retry.message}`}
+					</Text>
+				)}
+				<Text fill='#8197b2' fontSize={16} x={28} y={retry ? 366 : 342}>
+					{retry
+						? 'Copy the file over, then press X to retry — no restart needed.'
+						: 'Then relaunch this app, or copy the file and press X to retry.'}
 				</Text>
 			</Group>
 
@@ -56,6 +89,7 @@ export function ErrorMissingProdKeys() {
 			</Group>
 
 			<Footer>
+				<FooterItem button='X' x={width - 340}>Retry</FooterItem>
 				<FooterItem button='A' x={width - 220}>Exit</FooterItem>
 				<FooterItem button='Plus' x={width - 100}>Exit</FooterItem>
 			</Footer>
