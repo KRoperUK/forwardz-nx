@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { FilePicker } from '../components/FilePicker';
 import { Footer, FooterItem } from '../components/Footer';
 import { useGamepadButton } from '../hooks/use-gamepad';
+import { applyTextScale, themeFor } from '../accessibility';
 import {
 	SETTINGS_BACKUP_PATH,
 	SETTINGS_EXPORT_FILENAME,
@@ -59,6 +60,10 @@ export function SettingsScreen() {
 	const [pickerShowing, setPickerShowing] = useState(false);
 	const [pending, setPending] = useState<Settings | null>(null);
 	const [pendingBackup, setPendingBackup] = useState<string | null>(null);
+	const [prefs, setPrefs] = useState(
+		() => loadSettings(switchStorage()).preferences,
+	);
+	const theme = themeFor(prefs);
 	const [hasBackup, setHasBackup] = useState(() => {
 		try {
 			return Switch.readFileSync(SETTINGS_BACKUP_PATH) != null;
@@ -66,6 +71,18 @@ export function SettingsScreen() {
 			return false;
 		}
 	});
+
+	const togglePreference = useCallback(
+		(key: 'largerText' | 'highContrast') => {
+			setPrefs((current) => {
+				const next = { ...current, [key]: !current[key] };
+				const stored = loadSettings(switchStorage());
+				saveSettings(switchStorage(), { ...stored, preferences: next });
+				return next;
+			});
+		},
+		[],
+	);
 
 	const doExport = useCallback(() => {
 		setPending(null);
@@ -181,38 +198,63 @@ export function SettingsScreen() {
 		!pickerShowing,
 	);
 	useGamepadButton('Plus', () => Switch.exit(), [], !pickerShowing);
+	useGamepadButton(
+		'L',
+		() => {
+			togglePreference('largerText');
+		},
+		[togglePreference],
+		!pickerShowing,
+	);
+	useGamepadButton(
+		'R',
+		() => {
+			togglePreference('highContrast');
+		},
+		[togglePreference],
+		!pickerShowing,
+	);
+	useGamepadButton(
+		'ZL',
+		() => navigate('/walkthrough'),
+		[navigate],
+		!pickerShowing && !pending,
+	);
 
 	return (
 		<>
-			<Rect width={width} height={root.ctx.canvas.height} fill='#0b1220' />
-			<Rect width={width} height={6} fill='#56e0c0' />
-			<Text fill='#f4f7fb' fontSize={30} x={26} y={18}>
+			<Rect width={width} height={root.ctx.canvas.height} fill={theme.background} />
+			<Rect width={width} height={6} fill={theme.accent} />
+			<Text fill={theme.text} fontSize={applyTextScale(30, prefs)} x={26} y={18}>
 				SETTINGS BACKUP
 			</Text>
-			<Text fill='#8197b2' fontSize={16} x={28} y={55} maxWidth={width - 56}>
+			<Text fill={theme.muted} fontSize={applyTextScale(16, prefs)} x={28} y={55} maxWidth={width - 56}>
 				Move hidden apps, favourites, and overrides to another SD card. Imports validate first and keep a backup.
 			</Text>
 
-			<Text fill='#d8e4f2' fontSize={20} x={28} y={110}>
+			<Text fill={theme.text} fontSize={applyTextScale(20, prefs)} x={28} y={110}>
 				{`This console: ${describeSettings(readLiveSettings())}.`}
+			</Text>
+			<Text fill={theme.muted} fontSize={applyTextScale(16, prefs)} x={28} y={136}>
+				{`Text: ${prefs.largerText ? 'Larger' : 'Standard'} (L) · Contrast: ${prefs.highContrast ? 'High' : 'Standard'} (R)`}
 			</Text>
 
 			{pending && (
 				<>
-					<Text fill='#d9a85b' fontSize={22} x={28} y={150}>
+					<Text fill={theme.warning} fontSize={applyTextScale(22, prefs)} x={28} y={176}>
 						{`Replace current settings with ${describeSettings(pending)}?`}
 					</Text>
-					<Text fill='#d9a85b' fontSize={18} x={28} y={180}>
+					<Text fill={theme.warning} fontSize={applyTextScale(18, prefs)} x={28} y={206}>
 						Press A to replace (a backup is kept), B to keep current settings.
 					</Text>
 				</>
 			)}
 			{notice && (
 				<Text
-					fill={notice.kind === 'error' ? '#e06c6c' : '#56e0c0'}
-					fontSize={18}
+					fill={notice.kind === 'error' ? theme.error : theme.accent}
+					fontSize={applyTextScale(18, prefs)}
 					x={28}
-					y={pending ? 220 : 150}
+					y={pending ? 246 : 176}
 					maxWidth={width - 56}
 				>
 					{notice.text}
@@ -230,6 +272,9 @@ export function SettingsScreen() {
 				)}
 				<FooterItem button='B' x={500}>Back</FooterItem>
 				<FooterItem button='Plus' x={620}>Exit</FooterItem>
+				<FooterItem button='L' x={740}>Text size</FooterItem>
+				<FooterItem button='R' x={900}>Contrast</FooterItem>
+				<FooterItem button='ZL' x={1060}>Walkthrough</FooterItem>
 			</Footer>
 
 			{pickerShowing && (

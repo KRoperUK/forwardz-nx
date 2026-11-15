@@ -12,6 +12,8 @@ import { render } from 'react-tela/render';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { AppletType } from '@nx.js/constants';
 import { prodKeys } from './prod-keys';
+import { loadSettings } from './settings';
+import { shouldShowWalkthrough } from './accessibility';
 
 // Routes
 import { ErrorAppletMode } from './routes/ErrorAppletMode';
@@ -25,6 +27,7 @@ import { RouteErrorBoundary } from './routes/Error';
 import { Batch } from './routes/Batch';
 import { Edit } from './routes/Edit';
 import { SettingsScreen } from './routes/Settings';
+import { Walkthrough } from './routes/Walkthrough';
 
 const routes = [
 	{
@@ -63,6 +66,11 @@ const routes = [
 		errorElement: <RouteErrorBoundary />,
 	},
 	{
+		path: '/walkthrough',
+		element: <Walkthrough />,
+		errorElement: <RouteErrorBoundary />,
+	},
+	{
 		path: '/batch',
 		element: <Batch />,
 		errorElement: <RouteErrorBoundary />,
@@ -86,6 +94,16 @@ if (Switch.appletType() !== AppletType.Application) {
 } else if (!prodKeys) {
 	// Ensure the `prod.keys` file exists
 	initialRoute = '/error-missing-prod-keys';
+} else if (
+	shouldShowWalkthrough(
+		loadSettings({
+			readFile: (path) => Switch.readFileSync(path),
+			writeFile: (path, data) => Switch.writeFileSync(path, data),
+		}).preferences,
+	)
+) {
+	// First run: tour the controller-first workflow before the library
+	initialRoute = '/walkthrough';
 }
 
 const router = createMemoryRouter(routes, {
