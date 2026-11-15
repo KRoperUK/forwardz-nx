@@ -1,10 +1,16 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Text, useParent } from 'react-tela';
 import type { AppInfo } from '../apps';
+import {
+	isValidTitleId,
+	normalizeTitleId,
+	pathChangeCreatesNewId,
+} from '../collision';
 import { AppIcon } from '../components/AppIcon';
 import { Footer, FooterItem } from '../components/Footer';
 import { TextInput } from '../components/TextInput';
+import { getInstalledTitleIds } from '../forwarder-state';
 import { useGamepadButton } from '../hooks/use-gamepad';
 import { generateDeterministicID } from '../title-id';
 import type { GenerateState } from './Generate';
@@ -28,6 +34,10 @@ export function Edit() {
 		decodeURI(initialState.romPath ?? ''),
 	);
 	const [focusedIndex, setFocusedIndex] = useState(-1);
+	const [generatedId, setGeneratedId] = useState('');
+	const [installedIds] = useState<Set<string>>(() => getInstalledTitleIds());
+	const lastGeneratedRef = useRef('');
+	const initialGeneratedRef = useRef('');
 
 	// Generate a deterministic title ID based on the NRO path and arguments.
 	// This matches sphaira's logic so the same NRO always gets the same title ID.
@@ -36,8 +46,56 @@ export function Edit() {
 		if (romPath) {
 			argv += ` "${romPath}"`;
 		}
-		generateDeterministicID(nroPath, argv).then(setId);
+		generateDeterministicID(nroPath, argv).then((next) => {
+			setGeneratedId(next);
+			if (!initialGeneratedRef.current) {
+				initialGeneratedRef.current = next;
+			}
+			// Preserve a deliberate user override when the path changes;
+			// otherwise keep tracking the derived ID.
+			setId((current) =>
+				current === '' || current === lastGeneratedRef.current
+					? next
+					: current,
+			);
+			lastGeneratedRef.current = next;
+		});
 	}, [nroPath, romPath]);
+
+	// Collision warnings, checked before any installation begins.
+	const overridden =
+		id !== '' &&
+		generatedId !== '' &&
+		normalizeTitleId(id) !== normalizeTitleId(generatedId);
+	const overrideValid = isValidTitleId(id);
+	const alreadyInstalled =
+		id !== '' && installedIds.has(normalizeTitleId(id));
+	const pathChangedId =
+		!overridden &&
+		pathChangeCreatesNewId(initialGeneratedRef.current, generatedId);
+	const warnings: { text: string; error: boolean }[] = [];
+	if (overridden) {
+		warnings.push(
+			overrideValid
+				? {
+						text: 'Custom title ID kept — use it to migrate an existing forwarder.',
+						error: false,
+					}
+				: { text: 'Custom title ID must be 16 hex digits.', error: true },
+		);
+	}
+	if (overrideValid && alreadyInstalled) {
+		warnings.push({
+			text: 'This title ID is already installed — installing will replace that forwarder.',
+			error: false,
+		});
+	}
+	if (pathChangedId) {
+		warnings.push({
+			text: 'The new path produces a different title ID — the old forwarder stays installed separately.',
+			error: false,
+		});
+	}
 
 	const fields = [
 		{ name: 'Title ID', value: id, onChange: setId, description: '' },
@@ -157,6 +215,18 @@ export function Edit() {
 						onTouchEnd={() => setFocusedIndex(i)}
 					/>
 				</>
+			))}
+
+			{warnings.map((warning, i) => (
+				<Text
+					key={warning.text}
+					fill={warning.error ? '#e06c6c' : '#d9a85b'}
+					fontSize={20}
+					x={20}
+					y={88 + fieldsLength * 50 + i * 32}
+				>
+					{warning.text}
+				</Text>
 			))}
 
 			<AppIcon icon={icon} x={root.ctx.canvas.width - 320} y={64} />
