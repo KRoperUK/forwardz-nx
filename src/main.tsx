@@ -24,6 +24,7 @@ import { Success } from './routes/Success';
 import { RouteErrorBoundary } from './routes/Error';
 import { Batch } from './routes/Batch';
 import { Edit } from './routes/Edit';
+import { SettingsScreen } from './routes/Settings';
 
 const routes = [
 	{
@@ -54,6 +55,11 @@ const routes = [
 	{
 		path: '/edit',
 		element: <Edit />,
+		errorElement: <RouteErrorBoundary />,
+	},
+	{
+		path: '/settings',
+		element: <SettingsScreen />,
 		errorElement: <RouteErrorBoundary />,
 	},
 	{

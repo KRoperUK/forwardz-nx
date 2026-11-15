@@ -224,6 +224,12 @@ export function Select() {
 		[refreshLibrary],
 		!filePickerShowing && !scanning,
 	);
+	useGamepadButton(
+		'ZL',
+		() => navigate('/settings'),
+		[navigate],
+		!filePickerShowing,
+	);
 
 	useDirection(
 		'Left',
@@ -367,6 +373,7 @@ export function Select() {
 					<FooterItem button='Minus' x={790}>Batch</FooterItem>
 				)}
 				<FooterItem button='Plus' x={900}>Exit</FooterItem>
+				<FooterItem button='ZL' x={1000}>Backup</FooterItem>
 			</Footer>
 
 			{filePickerShowing && (
