@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Group, Rect, Text, useParent } from 'react-tela';
 import { useNavigate } from 'react-router-dom';
-import { type AppInfo, apps, pathToAppInfo } from '../apps';
+import { type AppInfo, pathToAppInfo, refreshLibraryApps } from '../apps';
+import { toggleBatchPath } from '../batch';
 import { AppTile } from '../components/AppTile';
 import { FilePicker } from '../components/FilePicker';
 import { Footer, FooterItem } from '../components/Footer';
@@ -13,7 +14,10 @@ import {
 	pathKey,
 	saveHiddenPaths,
 } from '../forwarder-state';
-import { generateDeterministicID } from '../title-id';
+import {
+	formatLastScanTime,
+	type LibraryCache,
+} from '../library-cache';
 
 type Filter = 'all' | 'installed' | 'missing' | 'hidden';
 
@@ -37,7 +41,13 @@ export function Select() {
 	const [installedIds, setInstalledIds] = useState<Set<string>>(
 		() => new Set(),
 	);
-	const [forwarderIds, setForwarderIds] = useState<Record<string, string>>({});
+	const [libraryApps, setLibraryApps] = useState<AppInfo[]>([]);
+	const [libraryCache, setLibraryCache] = useState<LibraryCache | null>(null);
+	const [scanning, setScanning] = useState(true);
+	const [batchMode, setBatchMode] = useState(false);
+	const [batchPaths, setBatchPaths] = useState<Set<string>>(() => new Set());
+	const appsRef = useRef<AppInfo[]>([]);
+	const scanningRef = useRef(false);
 
 	const filter = FILTERS[filterIndex].key;
 	const perRow = 5;
@@ -45,34 +55,43 @@ export function Select() {
 	const viewportHeight = root.ctx.canvas.height - 212;
 	const tileHeight = 174;
 
+	// Cached library scan: unchanged NRO files are reused from the on-disk
+	// cache (and in-memory icons within a session) so only added or
+	// modified files are re-parsed. Deferred so the loading state paints
+	// first and the controller stays responsive during the stat pass.
+	const refreshLibrary = useCallback((force: boolean) => {
+		if (scanningRef.current) return;
+		scanningRef.current = true;
+		setScanning(true);
+		const previous = appsRef.current;
+		setTimeout(() => {
+			refreshLibraryApps(previous, { force }).then((result) => {
+				appsRef.current = result.apps;
+				setLibraryApps(result.apps);
+				setLibraryCache(result.cache);
+				setInstalledIds(getInstalledTitleIds());
+				scanningRef.current = false;
+				setScanning(false);
+			});
+		}, 50);
+	}, []);
+
 	useEffect(() => {
 		setInstalledIds(getInstalledTitleIds());
-		let cancelled = false;
-		Promise.all(
-			apps.map(async (app) => {
-				const path = decodeURI(app.path);
-				const id = await generateDeterministicID(path, path);
-				return [app.path, id] as const;
-			}),
-		).then((entries) => {
-			if (!cancelled) setForwarderIds(Object.fromEntries(entries));
-		});
-		return () => {
-			cancelled = true;
-		};
-	}, []);
+		refreshLibrary(false);
+	}, [refreshLibrary]);
 
 	const isInstalled = useCallback(
 		(app: AppInfo) => {
-			const id = forwarderIds[app.path];
+			const id = app.forwarderId;
 			return Boolean(id && installedIds.has(id));
 		},
-		[forwarderIds, installedIds],
+		[installedIds],
 	);
 
 	const visibleApps = useMemo(
 		() =>
-			apps.filter((app) => {
+			libraryApps.filter((app) => {
 				const hidden = hiddenPaths.has(pathKey(app.path));
 				if (filter === 'hidden') return hidden;
 				if (hidden) return false;
@@ -80,10 +99,10 @@ export function Select() {
 				if (filter === 'missing') return !isInstalled(app);
 				return true;
 			}),
-		[filter, hiddenPaths, isInstalled],
+		[libraryApps, filter, hiddenPaths, isInstalled],
 	);
 
-	const installedCount = apps.filter(isInstalled).length;
+	const installedCount = libraryApps.filter(isInstalled).length;
 	const totalRows = Math.max(1, Math.ceil(visibleApps.length / perRow));
 	const contentHeight = totalRows * tileHeight;
 	const rowsVisible = Math.max(1, Math.floor(viewportHeight / tileHeight));
@@ -127,10 +146,32 @@ export function Select() {
 		});
 	}, [selectedApp]);
 
+	const toggleBatchMode = useCallback(() => {
+		setBatchPaths(new Set());
+		setBatchMode((value) => !value);
+	}, []);
+
+	const toggleBatchSelected = useCallback(() => {
+		if (!selectedApp) return;
+		setBatchPaths((current) => toggleBatchPath(current, selectedApp.path));
+	}, [selectedApp]);
+
+	const openBatchReview = useCallback(() => {
+		const selected = libraryApps.filter((app) => batchPaths.has(app.path));
+		if (selected.length === 0) return;
+		navigate('/batch', { state: { apps: selected } });
+	}, [libraryApps, batchPaths, navigate]);
+
 	useGamepadButton(
 		'A',
-		() => selectedApp && goToEdit(selectedApp),
-		[selectedApp, goToEdit],
+		() => {
+			if (batchMode) {
+				toggleBatchSelected();
+			} else if (selectedApp) {
+				goToEdit(selectedApp);
+			}
+		},
+		[batchMode, selectedApp, goToEdit, toggleBatchSelected],
 		!filePickerShowing,
 	);
 	useGamepadButton('B', () => navigate(-1), [navigate], !filePickerShowing);
@@ -152,9 +193,27 @@ export function Select() {
 	);
 	useGamepadButton(
 		'X',
-		() => setFilePickerShowing(true),
-		[],
-		!filePickerShowing,
+		() => {
+			if (batchMode) {
+				openBatchReview();
+			} else {
+				setFilePickerShowing(true);
+			}
+		},
+		[batchMode, openBatchReview],
+		!filePickerShowing && (!batchMode || batchPaths.size > 0),
+	);
+	useGamepadButton(
+		'Minus',
+		() => toggleBatchMode(),
+		[toggleBatchMode],
+		!filePickerShowing && !scanning,
+	);
+	useGamepadButton(
+		'ZR',
+		() => refreshLibrary(true),
+		[refreshLibrary],
+		!filePickerShowing && !scanning,
 	);
 
 	useDirection(
@@ -196,10 +255,15 @@ export function Select() {
 				FORWARDZ LIBRARY
 			</Text>
 			<Text fill='#8197b2' fontSize={16} x={28} y={55}>
-				Select homebrew, review its status, and create a HOME-menu shortcut.
+				{batchMode
+					? `BATCH MODE — ${batchPaths.size} SELECTED · A toggles · X reviews · Minus exits`
+					: 'Select homebrew, review its status, and create a HOME-menu shortcut.'}
 			</Text>
 			<Text fill='#56e0c0' fontSize={18} textAlign='right' x={viewportWidth - 28} y={22}>
-				{`${installedCount} INSTALLED  /  ${apps.length} APPS`}
+				{`${installedCount} INSTALLED  /  ${libraryApps.length} APPS`}
+			</Text>
+			<Text fill='#7990ab' fontSize={14} textAlign='right' x={viewportWidth - 28} y={48}>
+				{scanning ? 'SCANNING LIBRARY…' : `LAST SCAN ${formatLastScanTime(libraryCache)}`}
 			</Text>
 
 			<Group x={24} y={82} width={viewportWidth - 48} height={38}>
@@ -249,12 +313,13 @@ export function Select() {
 						installed={isInstalled(app)}
 						hidden={hiddenPaths.has(pathKey(app.path))}
 						selected={selectedIndex === index}
+						batched={batchPaths.has(app.path)}
 						onTouchEnd={() => goToEdit(app)}
 					/>
 				))}
 				{visibleApps.length === 0 && (
 					<Text fill='#8197b2' fontSize={24} x={viewportWidth / 2} y={120} textAlign='center'>
-						{filter === 'hidden' ? 'No hidden apps' : 'No apps in this view'}
+						{scanning ? 'Scanning library…' : filter === 'hidden' ? 'No hidden apps' : 'No apps in this view'}
 					</Text>
 				)}
 			</ScrollGroup>
@@ -282,9 +347,17 @@ export function Select() {
 				<FooterItem button='L' x={24}>Previous view</FooterItem>
 				<FooterItem button='R' x={190}>Next view</FooterItem>
 				<FooterItem button='Y' x={350}>{selectedApp && hiddenPaths.has(pathKey(selectedApp.path)) ? 'Show' : 'Hide'}</FooterItem>
-				<FooterItem button='X' x={450}>File picker</FooterItem>
-				<FooterItem button='A' x={650}>Configure</FooterItem>
-				<FooterItem button='Plus' x={850}>Exit</FooterItem>
+				<FooterItem button='X' x={450}>{batchMode ? `Review (${batchPaths.size})` : 'File picker'}</FooterItem>
+				{batchMode ? (
+					<FooterItem button='Minus' x={580}>Done</FooterItem>
+				) : (
+					<FooterItem button='ZR' x={580}>Refresh</FooterItem>
+				)}
+				<FooterItem button='A' x={700}>{batchMode ? 'Select' : 'Configure'}</FooterItem>
+				{!batchMode && (
+					<FooterItem button='Minus' x={790}>Batch</FooterItem>
+				)}
+				<FooterItem button='Plus' x={900}>Exit</FooterItem>
 			</Footer>
 
 			{filePickerShowing && (

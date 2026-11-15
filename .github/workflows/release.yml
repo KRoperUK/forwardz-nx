@@ -61,9 +61,21 @@ jobs:
         if: steps.release.outputs.release_created == 'true'
         run: pnpm nro
 
-      - name: Generate checksum
+      - name: Write build provenance
         if: steps.release.outputs.release_created == 'true'
-        run: sha256sum forwardz.nro > forwardz.nro.sha256
+        env:
+          TAG_NAME: ${{ steps.release.outputs.tag_name }}
+        run: |
+          cat > build-info.txt <<EOF
+          tag: $TAG_NAME
+          commit: $GITHUB_SHA
+          repository: $GITHUB_REPOSITORY
+          built: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+          node: $(node --version)
+          pnpm: $(pnpm --version)
+          EOF
+          sha256sum forwardz.nro > forwardz.nro.sha256
+          sha256sum build-info.txt > build-info.txt.sha256
 
       - name: Attach NRO to GitHub Release
         if: steps.release.outputs.release_created == 'true'
@@ -74,5 +86,7 @@ jobs:
           gh release upload "$TAG_NAME" \
             forwardz.nro \
             forwardz.nro.sha256 \
+            build-info.txt \
+            build-info.txt.sha256 \
             --repo "$GITHUB_REPOSITORY" \
             --clobber
