@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Group, Rect, Text, useParent } from 'react-tela';
 import { useNavigate } from 'react-router-dom';
 import { type AppInfo, pathToAppInfo, refreshLibraryApps } from '../apps';
+import { toggleBatchPath } from '../batch';
 import { AppTile } from '../components/AppTile';
 import { FilePicker } from '../components/FilePicker';
 import { Footer, FooterItem } from '../components/Footer';
@@ -43,6 +44,8 @@ export function Select() {
 	const [libraryApps, setLibraryApps] = useState<AppInfo[]>([]);
 	const [libraryCache, setLibraryCache] = useState<LibraryCache | null>(null);
 	const [scanning, setScanning] = useState(true);
+	const [batchMode, setBatchMode] = useState(false);
+	const [batchPaths, setBatchPaths] = useState<Set<string>>(() => new Set());
 	const appsRef = useRef<AppInfo[]>([]);
 	const scanningRef = useRef(false);
 
@@ -143,10 +146,32 @@ export function Select() {
 		});
 	}, [selectedApp]);
 
+	const toggleBatchMode = useCallback(() => {
+		setBatchPaths(new Set());
+		setBatchMode((value) => !value);
+	}, []);
+
+	const toggleBatchSelected = useCallback(() => {
+		if (!selectedApp) return;
+		setBatchPaths((current) => toggleBatchPath(current, selectedApp.path));
+	}, [selectedApp]);
+
+	const openBatchReview = useCallback(() => {
+		const selected = libraryApps.filter((app) => batchPaths.has(app.path));
+		if (selected.length === 0) return;
+		navigate('/batch', { state: { apps: selected } });
+	}, [libraryApps, batchPaths, navigate]);
+
 	useGamepadButton(
 		'A',
-		() => selectedApp && goToEdit(selectedApp),
-		[selectedApp, goToEdit],
+		() => {
+			if (batchMode) {
+				toggleBatchSelected();
+			} else if (selectedApp) {
+				goToEdit(selectedApp);
+			}
+		},
+		[batchMode, selectedApp, goToEdit, toggleBatchSelected],
 		!filePickerShowing,
 	);
 	useGamepadButton('B', () => navigate(-1), [navigate], !filePickerShowing);
@@ -168,9 +193,21 @@ export function Select() {
 	);
 	useGamepadButton(
 		'X',
-		() => setFilePickerShowing(true),
-		[],
-		!filePickerShowing,
+		() => {
+			if (batchMode) {
+				openBatchReview();
+			} else {
+				setFilePickerShowing(true);
+			}
+		},
+		[batchMode, openBatchReview],
+		!filePickerShowing && (!batchMode || batchPaths.size > 0),
+	);
+	useGamepadButton(
+		'Minus',
+		() => toggleBatchMode(),
+		[toggleBatchMode],
+		!filePickerShowing && !scanning,
 	);
 	useGamepadButton(
 		'ZR',
@@ -218,7 +255,9 @@ export function Select() {
 				FORWARDZ LIBRARY
 			</Text>
 			<Text fill='#8197b2' fontSize={16} x={28} y={55}>
-				Select homebrew, review its status, and create a HOME-menu shortcut.
+				{batchMode
+					? `BATCH MODE — ${batchPaths.size} SELECTED · A toggles · X reviews · Minus exits`
+					: 'Select homebrew, review its status, and create a HOME-menu shortcut.'}
 			</Text>
 			<Text fill='#56e0c0' fontSize={18} textAlign='right' x={viewportWidth - 28} y={22}>
 				{`${installedCount} INSTALLED  /  ${libraryApps.length} APPS`}
@@ -274,6 +313,7 @@ export function Select() {
 						installed={isInstalled(app)}
 						hidden={hiddenPaths.has(pathKey(app.path))}
 						selected={selectedIndex === index}
+						batched={batchPaths.has(app.path)}
 						onTouchEnd={() => goToEdit(app)}
 					/>
 				))}
@@ -307,9 +347,16 @@ export function Select() {
 				<FooterItem button='L' x={24}>Previous view</FooterItem>
 				<FooterItem button='R' x={190}>Next view</FooterItem>
 				<FooterItem button='Y' x={350}>{selectedApp && hiddenPaths.has(pathKey(selectedApp.path)) ? 'Show' : 'Hide'}</FooterItem>
-				<FooterItem button='X' x={450}>File picker</FooterItem>
-				<FooterItem button='ZR' x={580}>Refresh</FooterItem>
-				<FooterItem button='A' x={700}>Configure</FooterItem>
+				<FooterItem button='X' x={450}>{batchMode ? `Review (${batchPaths.size})` : 'File picker'}</FooterItem>
+				{batchMode ? (
+					<FooterItem button='Minus' x={580}>Done</FooterItem>
+				) : (
+					<FooterItem button='ZR' x={580}>Refresh</FooterItem>
+				)}
+				<FooterItem button='A' x={700}>{batchMode ? 'Select' : 'Configure'}</FooterItem>
+				{!batchMode && (
+					<FooterItem button='Minus' x={790}>Batch</FooterItem>
+				)}
 				<FooterItem button='Plus' x={900}>Exit</FooterItem>
 			</Footer>
 

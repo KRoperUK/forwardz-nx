@@ -8,6 +8,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { prodKeys } from '../prod-keys';
 import type { Module } from '../hacbrewpack';
 import type { AppInfo } from '../apps';
+import { nextQueuedIndex, withBatchResult, type BatchContext } from '../batch';
 
 type Status = 'generating' | 'installing' | 'error' | 'success';
 
@@ -15,6 +16,8 @@ export interface GenerateState extends AppInfo {
 	romPath: string;
 	profileSelector: boolean;
 	install: boolean;
+	/** Present when this item is one step of a batch run. */
+	batch?: BatchContext;
 }
 
 export function Generate() {
@@ -29,6 +32,7 @@ export function Generate() {
 		version,
 		profileSelector,
 		install,
+		batch,
 	}: GenerateState = useLocation().state;
 	const [status, setStatus] = useState<Status>('generating');
 	const [error, setError] = useState<string | null>(null);
@@ -37,6 +41,44 @@ export function Generate() {
 	useEffect(() => {
 		async function g() {
 			const start = Date.now();
+
+			// Advance a batch run: record this item's outcome, then move to
+			// the next queued item or land on the summary screen. One failed
+			// item never aborts the remaining batch.
+			const advanceBatch = (ok: boolean, message?: string) => {
+				if (!batch) return;
+				const updated = withBatchResult(batch.items, batch.index, ok, message);
+				const next = nextQueuedIndex(updated, batch.index);
+				if (next === -1) {
+					navigate('/batch', { state: { items: updated, finished: true } });
+					return;
+				}
+				const app = updated[next].app;
+				navigate('/generate', {
+					state: {
+						id: app.forwarderId ?? '',
+						icon: app.icon,
+						path: app.path,
+						romPath: '',
+						name: app.name,
+						author: app.author,
+						version: app.version,
+						profileSelector: false,
+						install,
+						batch: { items: updated, index: next },
+					} satisfies GenerateState,
+				});
+			};
+
+			const fail = (message: string) => {
+				if (batch) {
+					advanceBatch(false, message);
+				} else {
+					setStatus('error');
+					setError(message);
+				}
+			};
+
 			const ModuleFactory = await import('../hacbrewpack.js');
 			const helloWasm = Switch.readFileSync('romfs:/hacbrewpack.wasm');
 			const mainData = Switch.readFileSync('romfs:/template/exefs/main');
@@ -44,33 +86,27 @@ export function Generate() {
 				'romfs:/template/exefs/main.npdm',
 			);
 			if (!name) {
-				setStatus('error');
-				setError('missing `name` field');
+				fail('missing `name` field');
 				return;
 			}
 			if (!author) {
-				setStatus('error');
-				setError('missing `author` field');
+				fail('missing `author` field');
 				return;
 			}
 			if (!helloWasm) {
-				setStatus('error');
-				setError('missing `hacbrewpack.wasm` file');
+				fail('missing `hacbrewpack.wasm` file');
 				return;
 			}
 			if (!prodKeys) {
-				setStatus('error');
-				setError('missing `prod.keys` file');
+				fail('missing `prod.keys` file');
 				return;
 			}
 			if (!mainData) {
-				setStatus('error');
-				setError('missing `main` file');
+				fail('missing `main` file');
 				return;
 			}
 			if (!mainNpdmData) {
-				setStatus('error');
-				setError('missing `main.npdm` file');
+				fail('missing `main.npdm` file');
 				return;
 			}
 
@@ -192,20 +228,32 @@ export function Generate() {
 										)) {
 											console.debug(event);
 										}
-									})().then(() => {
-										const query = new URLSearchParams({
-											installed: '1',
-											name,
-											duration: String(duration),
+									})()
+										.then(() => {
+											if (batch) {
+												advanceBatch(true);
+												return;
+											}
+											const query = new URLSearchParams({
+												installed: '1',
+												name,
+												duration: String(duration),
+											});
+											navigate(`/success?${query}`);
+										})
+										.catch((err) => {
+											fail(`Install failed: ${err}`);
 										});
-										navigate(`/success?${query}`);
-									});
 								} else {
 									// Save the generated NSP forwarder to the SD card
 									const fileName = `${name.replace(/[:/\\]/g, '-')} [${id}].nsp`;
 									const outUrl = new URL(fileName, 'sdmc:/');
 									Switch.writeFileSync(outUrl, data);
 
+									if (batch) {
+										advanceBatch(true);
+										return;
+									}
 									const query = new URLSearchParams({
 										name: fileName,
 										duration: String(duration),
@@ -213,17 +261,14 @@ export function Generate() {
 									navigate(`/success?${query}`);
 								}
 							} catch (err) {
-								setStatus('error');
-								setError(`Failed to locate NSP file: ${err}`);
+								fail(`Failed to locate NSP file: ${err}`);
 								console.debug(`Failed to locate NSP file: ${err}`);
 							}
 						} else {
-							setStatus('error');
-							setError(`exit code: ${exitCode}`);
+							fail(`exit code: ${exitCode}`);
 						}
 					} catch (err) {
-						setStatus('error');
-						setError(`error: ${err}`);
+						fail(`error: ${err}`);
 						console.debug(err);
 					}
 				},
@@ -241,12 +286,15 @@ export function Generate() {
 		version,
 		profileSelector,
 		install,
+		batch,
 	]);
 
 	return (
 		<>
 			<Text fill='white' fontSize={24}>
-				{error || status}
+				{batch
+					? `BATCH ${batch.index + 1} OF ${batch.items.length} — ${error || status}`
+					: error || status}
 			</Text>
 			<Text fill='white' fontSize={24} y={32}>
 				{name}

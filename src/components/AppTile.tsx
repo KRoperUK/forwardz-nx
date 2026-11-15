@@ -10,6 +10,7 @@ export function AppTile({
 	selected,
 	installed = false,
 	hidden = false,
+	batched = false,
 	onTouchEnd,
 }: {
 	icon: ArrayBuffer | undefined;
@@ -18,6 +19,7 @@ export function AppTile({
 	selected: boolean;
 	installed?: boolean;
 	hidden?: boolean;
+	batched?: boolean;
 	onTouchEnd?: () => void;
 }) {
 	const root = useParent();
@@ -47,10 +49,26 @@ export function AppTile({
 				x={7}
 				width={cardWidth}
 				height={cardHeight}
-				fill={selected ? '#243b63' : '#151f33'}
-				stroke={selected ? '#56e0c0' : installed ? '#35c89a' : '#2b3a53'}
+				fill={selected ? '#243b63' : batched ? '#1d3a4a' : '#151f33'}
+				stroke={
+					selected
+						? '#56e0c0'
+						: batched
+							? '#56e0c0'
+							: installed
+								? '#35c89a'
+								: '#2b3a53'
+				}
 				lineWidth={selected ? 3 : 2}
 			/>
+			{batched && (
+				<>
+					<Rect x={14} y={14} width={72} height={22} fill='#56e0c0' />
+					<Text fill='#0b1220' fontSize={12} textAlign='center' x={50} y={18}>
+						IN BATCH
+					</Text>
+				</>
+			)}
 			<AppIcon
 				icon={icon}
 				width={iconSize}

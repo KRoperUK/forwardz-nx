@@ -22,6 +22,7 @@ import { SelectForwarderType } from './routes/SelectForwarderType';
 import { SelectRetroArch } from './routes/SelectRetroArch';
 import { Success } from './routes/Success';
 import { RouteErrorBoundary } from './routes/Error';
+import { Batch } from './routes/Batch';
 import { Edit } from './routes/Edit';
 
 const routes = [
@@ -53,6 +54,11 @@ const routes = [
 	{
 		path: '/edit',
 		element: <Edit />,
+		errorElement: <RouteErrorBoundary />,
+	},
+	{
+		path: '/batch',
+		element: <Batch />,
 		errorElement: <RouteErrorBoundary />,
 	},
 	{
