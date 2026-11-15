@@ -15,7 +15,8 @@
     "lint": "biome lint",
     "nro": "pnpm run build && nxjs-nro",
     "nsp": "pnpm run build && nxjs-nsp",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "test": "vitest run"
   },
   "author": {
     "name": "Nathan Rajlich",
@@ -40,6 +41,7 @@
     "@nx.js/runtime": "0.0.69",
     "@types/react": "^18.3.23",
     "esbuild": "^0.28.0",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "4.1.11"
   }
 }
