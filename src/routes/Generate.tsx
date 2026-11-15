@@ -114,11 +114,13 @@ export function Generate() {
 			const mainNpdm = new Uint8Array(mainNpdmData);
 			const keys = new Uint8Array(prodKeys);
 
-			// Run the icon through Jimp to resize it and/or remove EXIF metadata
+			// Run the icon through Jimp to cover-crop it to the HOME-menu
+			// size and/or remove EXIF metadata. Cover (not stretch) matches
+			// the preview geometry in `artwork.computeCoverCrop`.
 			let iconBuf = icon;
 			if (iconBuf) {
 				const logo = await Jimp.fromBuffer(iconBuf);
-				logo.resize({ w: 256, h: 256 });
+				logo.cover({ w: 256, h: 256 });
 
 				// The icon size must be less than 0x20000 bytes otherwise
 				// Atmosphère shows a "?" icon on the home screen, so we
