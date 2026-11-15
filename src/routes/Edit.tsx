@@ -12,6 +12,7 @@ import { Footer, FooterItem } from '../components/Footer';
 import { TextInput } from '../components/TextInput';
 import { getInstalledTitleIds } from '../forwarder-state';
 import { useGamepadButton } from '../hooks/use-gamepad';
+import { guardDestructiveAction } from '../lifecycle';
 import { generateDeterministicID } from '../title-id';
 import type { GenerateState } from './Generate';
 
@@ -36,6 +37,7 @@ export function Edit() {
 	const [focusedIndex, setFocusedIndex] = useState(-1);
 	const [generatedId, setGeneratedId] = useState('');
 	const [installedIds] = useState<Set<string>>(() => getInstalledTitleIds());
+	const [replaceArmed, setReplaceArmed] = useState(false);
 	const lastGeneratedRef = useRef('');
 	const initialGeneratedRef = useRef('');
 
@@ -73,7 +75,17 @@ export function Edit() {
 	const pathChangedId =
 		!overridden &&
 		pathChangeCreatesNewId(initialGeneratedRef.current, generatedId);
+	// A retargeted title ID disarms a pending replace confirmation.
+	useEffect(() => {
+		setReplaceArmed(false);
+	}, [id]);
 	const warnings: { text: string; error: boolean }[] = [];
+	if (replaceArmed && overrideValid && alreadyInstalled) {
+		const gate = guardDestructiveAction('replace', name, id, false);
+		if (!gate.ok) {
+			warnings.push({ text: gate.error, error: false });
+		}
+	}
 	if (overridden) {
 		warnings.push(
 			overrideValid
@@ -117,6 +129,12 @@ export function Edit() {
 
 	const goToGenerate = useCallback(
 		(install: boolean) => {
+			// Installing over an already-installed title replaces that
+			// forwarder, so the first press only arms the confirmation.
+			if (install && overrideValid && alreadyInstalled && !replaceArmed) {
+				setReplaceArmed(true);
+				return;
+			}
 			const state: GenerateState = {
 				id,
 				icon,
@@ -140,6 +158,9 @@ export function Edit() {
 			version,
 			profileSelector,
 			navigate,
+			overrideValid,
+			alreadyInstalled,
+			replaceArmed,
 		],
 	);
 

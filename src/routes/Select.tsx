@@ -14,6 +14,7 @@ import {
 	pathKey,
 	saveHiddenPaths,
 } from '../forwarder-state';
+import { classifyLibraryLifecycle } from '../lifecycle';
 import {
 	formatLastScanTime,
 	type LibraryCache,
@@ -41,6 +42,7 @@ export function Select() {
 	const [installedIds, setInstalledIds] = useState<Set<string>>(
 		() => new Set(),
 	);
+	const [staleInstalledCount, setStaleInstalledCount] = useState(0);
 	const [libraryApps, setLibraryApps] = useState<AppInfo[]>([]);
 	const [libraryCache, setLibraryCache] = useState<LibraryCache | null>(null);
 	const [scanning, setScanning] = useState(true);
@@ -69,7 +71,14 @@ export function Select() {
 				appsRef.current = result.apps;
 				setLibraryApps(result.apps);
 				setLibraryCache(result.cache);
-				setInstalledIds(getInstalledTitleIds());
+				// Fresh enumeration on every refresh: forwarders removed
+				// outside the app stop matching instead of going stale.
+				const freshIds = getInstalledTitleIds();
+				setInstalledIds(freshIds);
+				setStaleInstalledCount(
+					classifyLibraryLifecycle(result.apps, freshIds)
+						.staleInstalledIds.length,
+				);
 				scanningRef.current = false;
 				setScanning(false);
 			});
@@ -260,7 +269,7 @@ export function Select() {
 					: 'Select homebrew, review its status, and create a HOME-menu shortcut.'}
 			</Text>
 			<Text fill='#56e0c0' fontSize={18} textAlign='right' x={viewportWidth - 28} y={22}>
-				{`${installedCount} INSTALLED  /  ${libraryApps.length} APPS`}
+				{`${installedCount} INSTALLED  /  ${libraryApps.length} APPS${staleInstalledCount > 0 ? `  /  ${staleInstalledCount} STALE` : ''}`}
 			</Text>
 			<Text fill='#7990ab' fontSize={14} textAlign='right' x={viewportWidth - 28} y={48}>
 				{scanning ? 'SCANNING LIBRARY…' : `LAST SCAN ${formatLastScanTime(libraryCache)}`}
