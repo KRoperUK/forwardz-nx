@@ -46,6 +46,7 @@ arms the replacement, the second confirms it.
 | L | Toggle larger text |
 | R | Toggle high contrast |
 | ZL | Replay walkthrough |
+| ZR | USB SD access info |
 | Plus | Exit |
 
 ## Keys and walkthrough

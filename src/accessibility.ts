@@ -71,6 +71,7 @@ export const CONTROLLER_MAP: ControllerMapping[] = [
 	{ screen: 'Backup', button: 'L', action: 'Toggle larger text' },
 	{ screen: 'Backup', button: 'R', action: 'Toggle high contrast' },
 	{ screen: 'Backup', button: 'ZL', action: 'Replay walkthrough' },
+	{ screen: 'Backup', button: 'ZR', action: 'USB SD access info' },
 	{ screen: 'Backup', button: 'Plus', action: 'Exit' },
 	{ screen: 'Keys', button: 'X', action: 'Retry detection' },
 	{ screen: 'Keys', button: 'A/Plus', action: 'Exit' },

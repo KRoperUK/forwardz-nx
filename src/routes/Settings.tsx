@@ -24,6 +24,7 @@ import {
 	saveHiddenPaths,
 } from '../forwarder-state';
 import { parseAppOverrides } from '../overrides';
+import { USB_SD_ACCESS_EXPLANATION_ENABLED } from '../usb-sd-access/support';
 
 function switchStorage() {
 	return {
@@ -220,6 +221,14 @@ export function SettingsScreen() {
 		[navigate],
 		!pickerShowing && !pending,
 	);
+	// Issue #10: explanation-only entry behind its feature flag. The target
+	// screen performs no USB or SD activity (docs/usb-sd-access.md).
+	useGamepadButton(
+		'ZR',
+		() => navigate('/usb-sd-access'),
+		[navigate],
+		!pickerShowing && !pending && USB_SD_ACCESS_EXPLANATION_ENABLED,
+	);
 
 	return (
 		<>
@@ -235,8 +244,8 @@ export function SettingsScreen() {
 			<Text fill={theme.text} fontSize={applyTextScale(20, prefs)} x={28} y={110}>
 				{`This console: ${describeSettings(readLiveSettings())}.`}
 			</Text>
-			<Text fill={theme.muted} fontSize={applyTextScale(16, prefs)} x={28} y={136}>
-				{`Text: ${prefs.largerText ? 'Larger' : 'Standard'} (L) · Contrast: ${prefs.highContrast ? 'High' : 'Standard'} (R)`}
+			<Text fill={theme.muted} fontSize={applyTextScale(16, prefs)} x={28} y={136} maxWidth={width - 56}>
+				{`Text: ${prefs.largerText ? 'Larger' : 'Standard'} (L) · Contrast: ${prefs.highContrast ? 'High' : 'Standard'} (R)${USB_SD_ACCESS_EXPLANATION_ENABLED ? ' · USB SD info (ZR)' : ''}`}
 			</Text>
 
 			{pending && (
