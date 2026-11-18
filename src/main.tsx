@@ -28,6 +28,8 @@ import { Batch } from './routes/Batch';
 import { Edit } from './routes/Edit';
 import { SettingsScreen } from './routes/Settings';
 import { Walkthrough } from './routes/Walkthrough';
+import { UsbSdAccess } from './routes/UsbSdAccess';
+import { USB_SD_ACCESS_EXPLANATION_ENABLED } from './usb-sd-access/support';
 
 const routes = [
 	{
@@ -70,6 +72,17 @@ const routes = [
 		element: <Walkthrough />,
 		errorElement: <RouteErrorBoundary />,
 	},
+	// Issue #10: explanation-only screen behind its feature flag. No USB
+	// session, no SD access — see docs/usb-sd-access.md.
+	...(USB_SD_ACCESS_EXPLANATION_ENABLED
+		? [
+				{
+					path: '/usb-sd-access',
+					element: <UsbSdAccess />,
+					errorElement: <RouteErrorBoundary />,
+				},
+			]
+		: []),
 	{
 		path: '/batch',
 		element: <Batch />,
